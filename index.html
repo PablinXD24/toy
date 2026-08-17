@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interface Estilizada - Vetor Preciso</title>
+    <title>Mundo Mágico - Loja de Brinquedos</title>
     <style>
         * {
             margin: 0;
@@ -19,13 +19,13 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            font-family: sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         .container {
             position: relative;
-            width: 760px;
-            height: 420px;
+            width: 820px;
+            height: 480px;
         }
 
         /* Forma principal em SVG para precisão absoluta nas curvas e cantos */
@@ -36,40 +36,95 @@
             width: 100%;
             height: 100%;
             fill: #8C863B;
+            filter: drop-shadow(0px 10px 20px rgba(0,0,0,0.15));
         }
 
-        /* Grade centralizada de cartões */
+        /* Cabeçalho interno da loja */
+        .store-header {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #FFF2B2;
+            font-size: 1.4rem;
+            font-weight: bold;
+            z-index: 2;
+            letter-spacing: 1px;
+        }
+
+        /* Grade centralizada de cartões de produtos */
         .grid-container {
             position: absolute;
-            top: 50%;
+            top: 55%;
             left: 50%;
             transform: translate(-50%, -50%);
             display: grid;
-            grid-template-columns: repeat(2, 110px);
-            grid-template-rows: repeat(2, 110px);
-            gap: 22px;
+            grid-template-columns: repeat(2, 140px);
+            grid-template-rows: repeat(2, 140px);
+            gap: 20px;
             z-index: 2;
         }
 
         .card {
-            width: 110px;
-            height: 110px;
+            width: 140px;
+            height: 140px;
             background-color: #FFFFFF;
-            border-radius: 22px;
-            transition: transform 0.2s ease, background-color 0.2s ease;
+            border-radius: 20px;
+            transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
             cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
         }
 
         .card:hover {
             transform: scale(1.04);
-            background-color: #F8F8F8;
+            background-color: #FAFAFA;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+
+        .card img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+
+        .card h3 {
+            font-size: 0.85rem;
+            color: #333;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .card span {
+            font-size: 0.8rem;
+            color: #8C863B;
+            font-weight: bold;
+        }
+
+        /* Rodapé com status do carrinho/Firebase */
+        .store-footer {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #FFF2B2;
+            font-size: 0.85rem;
+            z-index: 2;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Elemento principal desenhado via SVG para garantir pontas e arcos perfeitos -->
+        <!-- Elemento principal desenhado via SVG -->
         <svg class="main-shape" viewBox="0 0 760 420" xmlns="http://www.w3.org/2000/svg">
             <path d="
                 M 36 0 
@@ -91,25 +146,84 @@
             />
         </svg>
 
-        <!-- Grade de Cartões Brancos -->
-        <div class="grid-container">
-            <div class="card" onclick="handleClick(1)"></div>
-            <div class="card" onclick="handleClick(2)"></div>
-            <div class="card" onclick="handleClick(3)"></div>
-            <div class="card" onclick="handleClick(4)"></div>
+        <div class="store-header">🧸 Loja de Brinquedos Mágicos</div>
+
+        <!-- Grade de Produtos Dinâmica -->
+        <div class="grid-container" id="product-grid">
+            <!-- Os produtos serão injetados via JavaScript do Firebase -->
+            <div class="card" onclick="selectProduct('Carregando...')">
+                <h3>Carregando...</h3>
+                <span>--</span>
+            </div>
+            <div class="card"></div>
+            <div class="card"></div>
+            <div class="card"></div>
         </div>
+
+        <div class="store-footer" id="firebase-status">Conectando ao Firebase...</div>
     </div>
 
-    <script>
-        function handleClick(cardNumber) {
-            const cards = document.querySelectorAll('.card');
-            const targetCard = cards[cardNumber - 1];
+    <!-- Firebase SDKs (Modular Version) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // ⚠️ Substitua com as credenciais do seu projeto Firebase
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_AUTH_DOMAIN",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_STORAGE_BUCKET",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function loadProducts() {
+            const gridContainer = document.getElementById('product-grid');
+            const statusEl = document.getElementById('firebase-status');
             
-            targetCard.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                targetCard.style.transform = 'scale(1)';
-            }, 150);
+            try {
+                gridContainer.innerHTML = '';
+                // Supondo que sua coleção no Firestore se chame 'brinquedos'
+                const querySnapshot = await getDocs(collection(db, "brinquedos"));
+                
+                if (querySnapshot.empty) {
+                    statusEl.innerText = "Nenhum brinquedo cadastrado no banco.";
+                    return;
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const toy = doc.data();
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.onclick = () => selectProduct(toy.nome, toy.preco);
+                    
+                    card.innerHTML = `
+                        <img src="${toy.imagem || 'https://via.placeholder.com/60'}" alt="${toy.nome}">
+                        <h3>${toy.nome}</h3>
+                        <span>R$ ${Number(toy.preco).toFixed(2)}</span>
+                    `;
+                    gridContainer.appendChild(card);
+                });
+
+                statusEl.innerText = "Catálogo sincronizado com Firebase ✨";
+            } catch (error) {
+                console.error("Erro ao carregar produtos:", error);
+                statusEl.innerText = "Erro ao conectar com o banco de dados.";
+            }
         }
+
+        window.selectProduct = function(name, price) {
+            if(!price) return;
+            alert(`Você selecionou: ${name} por R$ ${Number(price).toFixed(2)}! Adicionado ao carrinho.`);
+        }
+
+        // Executar carregamento ao iniciar
+        loadProducts();
     </script>
 </body>
 </html>
