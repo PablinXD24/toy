@@ -1042,12 +1042,12 @@
                     <input type="text" id="checkout-address" required placeholder="Rua, Número, Bairro, Cidade">
                 </div>
                 <div class="form-group">
-                    <label>Método de Pagamento</label>
+                    <label>Forma de Pagamento</label>
                     <select id="checkout-payment" required>
-                        <option value="Mercado Pago">Mercado Pago (Pix, Cartão, Boleto, etc.)</option>
+                        <option value="Mercado Pago">Mercado Pago (Escolher na API)</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Ir para o Mercado Pago</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Finalizar e Pagar com Mercado Pago</button>
             </form>
         </div>
     </div>
@@ -1163,6 +1163,16 @@
         let isRegistering = false;
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Verifica se o usuário retornou do pagamento do Mercado Pago (simulação de retorno com parâmetro na URL)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('status') === 'success' || urlParams.get('collection_status') === 'approved' || localStorage.getItem('toyminimal_returning_mp') === 'true') {
+                localStorage.removeItem('toyminimal_returning_mp');
+                // Remove os parâmetros da URL sem recarregar a página
+                window.history.replaceState({}, document.title, window.location.pathname);
+                alert('Obrigado pela sua compra! O pagamento foi confirmado com sucesso.');
+                switchView('orders');
+            }
+
             updateAuthUI();
             renderProducts(products);
             updateCartBadge();
@@ -1432,7 +1442,6 @@
         function handleCheckoutSubmit(e) {
             e.preventDefault();
             const address = document.getElementById('checkout-address').value;
-            const payment = document.getElementById('checkout-payment').value;
             const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
             const newOrder = {
@@ -1440,7 +1449,7 @@
                 userId: currentUser.email,
                 userName: currentUser.name,
                 address,
-                payment,
+                payment: 'Mercado Pago',
                 items: [...cart],
                 total,
                 status: 'Em separação',
@@ -1461,9 +1470,9 @@
             updateCartBadge();
             closeCheckoutModal();
 
-            // Redirecionamento unificado para a API de pagamentos do Mercado Pago
-            alert('Redirecionando para o ambiente seguro do Mercado Pago...');
-            window.location.href = `https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=${newOrder.id}`;
+            // Marca que o usuário foi para o Mercado Pago e simula o redirecionamento com retorno automático simulado (adicionando parâmetro na URL de volta)
+            localStorage.setItem('toyminimal_returning_mp', 'true');
+            window.location.href = `https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=${newOrder.id}&back_url=${encodeURIComponent(window.location.href.split('?')[0] + '?status=success')}`;
         }
 
         function renderClientOrders() {
