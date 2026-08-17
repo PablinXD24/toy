@@ -997,7 +997,7 @@
                     <span>Total</span>
                     <span id="cart-total-price">R$ 0,00</span>
                 </div>
-                <button class="btn btn-primary" style="width: 100%;" onclick="proceedToCheckout()">Finalizar Pedido</button>
+                <button class="btn btn-primary" style="width: 100%;" onclick="redirectToMercadoPago()">Finalizar Compra (Mercado Pago)</button>
             </div>
         </div>
     </div>
@@ -1027,27 +1027,6 @@
                 <p style="text-align: center; margin-top: 20px; font-size: 0.85rem;">
                     <a href="#" id="auth-toggle-mode" onclick="toggleAuthMode(event)" style="color: var(--text-primary); font-weight: 600; text-decoration: underline;">Criar nova conta</a>
                 </p>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL: CHECKOUT -->
-    <div class="centered-modal-overlay" id="checkout-modal">
-        <div class="modal-card">
-            <button class="modal-close" onclick="closeCheckoutModal()"><i class="fa-solid fa-xmark"></i></button>
-            <h2 style="margin-bottom: 24px; font-size: 1.35rem;">Checkout</h2>
-            <form id="checkout-form" onsubmit="handleCheckoutSubmit(event)">
-                <div class="form-group">
-                    <label>Endereço de Entrega</label>
-                    <input type="text" id="checkout-address" required placeholder="Rua, Número, Bairro, Cidade">
-                </div>
-                <div class="form-group">
-                    <label>Forma de Pagamento</label>
-                    <select id="checkout-payment" required>
-                        <option value="Mercado Pago">Mercado Pago (Escolher na API)</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Finalizar e Pagar com Mercado Pago</button>
             </form>
         </div>
     </div>
@@ -1152,7 +1131,7 @@
                 id: 'ORD-1049',
                 userId: 'pablo11ssousa2@gmail.com',
                 userName: 'Pablo Sousa',
-                address: 'Rua Augusta, 500 - São Paulo',
+                address: 'Endereço via Mercado Pago',
                 items: [{name: 'Blocos Geométricos em Madeira', qty: 1, price: 129.90}],
                 total: 129.90,
                 status: 'Em separação',
@@ -1163,16 +1142,6 @@
         let isRegistering = false;
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Verifica se o usuário retornou do pagamento do Mercado Pago (simulação de retorno com parâmetro na URL)
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('status') === 'success' || urlParams.get('collection_status') === 'approved' || localStorage.getItem('toyminimal_returning_mp') === 'true') {
-                localStorage.removeItem('toyminimal_returning_mp');
-                // Remove os parâmetros da URL sem recarregar a página
-                window.history.replaceState({}, document.title, window.location.pathname);
-                alert('Obrigado pela sua compra! O pagamento foi confirmado com sucesso.');
-                switchView('orders');
-            }
-
             updateAuthUI();
             renderProducts(products);
             updateCartBadge();
@@ -1180,6 +1149,12 @@
             renderAdminProducts();
             renderAdminOrders();
             calculateMetrics();
+
+            // Verificar retorno do Mercado Pago simulado na URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('status') === 'success' || window.location.hash === '#success') {
+                finalizePendingOrderAfterPayment();
+            }
         });
 
         function switchView(viewId) {
@@ -1430,25 +1405,17 @@
             }
         }
 
-        function proceedToCheckout() {
+        function redirectToMercadoPago() {
             if (!currentUser) { closeCartDrawer(); openAuthModal(); return; }
             if (cart.length === 0) { alert('Carrinho vazio.'); return; }
-            closeCartDrawer();
-            document.getElementById('checkout-modal').classList.add('open');
-        }
 
-        function closeCheckoutModal() { document.getElementById('checkout-modal').classList.remove('open'); }
-
-        function handleCheckoutSubmit(e) {
-            e.preventDefault();
-            const address = document.getElementById('checkout-address').value;
             const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
-            const newOrder = {
+            const pendingOrder = {
                 id: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
                 userId: currentUser.email,
                 userName: currentUser.name,
-                address,
+                address: 'Endereço via Mercado Pago',
                 payment: 'Mercado Pago',
                 items: [...cart],
                 total,
@@ -1456,10 +1423,32 @@
                 createdAt: new Date().toISOString().split('T')[0]
             };
 
+            // Salva temporariamente para processar o pedido após o retorno do pagamento
+            localStorage.setItem('toyminimal_pending_order', JSON.stringify(pendingOrder));
+
+            closeCartDrawer();
+
+            // Simula o redirecionamento para o Mercado Pago e retorno automático com parâmetro de sucesso
+            const currentUrl = window.location.href.split('?')[0];
+            const redirectUrl = `${currentUrl}?status=success`;
+            
+            alert('Redirecionando para o ambiente seguro do Mercado Pago...');
+            window.location.href = redirectUrl;
+        }
+
+        function finalizePendingOrderAfterPayment() {
+            const pendingOrderStr = localStorage.getItem('toyminimal_pending_order');
+            if (!pendingOrderStr) return;
+
+            const newOrder = JSON.parse(pendingOrderStr);
+            
+            // Evita duplicidade se a página recarregar
+            localStorage.removeItem('toyminimal_pending_order');
+
             orders.unshift(newOrder);
             localStorage.setItem('toyminimal_orders', JSON.stringify(orders));
 
-            cart.forEach(cartItem => {
+            newOrder.items.forEach(cartItem => {
                 const prod = products.find(p => p.id === cartItem.id);
                 if (prod) prod.stock -= cartItem.qty;
             });
@@ -1468,11 +1457,13 @@
             cart = [];
             saveCart();
             updateCartBadge();
-            closeCheckoutModal();
 
-            // Marca que o usuário foi para o Mercado Pago e simula o redirecionamento com retorno automático simulado (adicionando parâmetro na URL de volta)
-            localStorage.setItem('toyminimal_returning_mp', 'true');
-            window.location.href = `https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=${newOrder.id}&back_url=${encodeURIComponent(window.location.href.split('?')[0] + '?status=success')}`;
+            // Mensagem de agradecimento solicitada e redirecionamento para pedidos
+            alert('Obrigado pela sua compra! O pagamento foi processado com sucesso pelo Mercado Pago.');
+            switchView('orders');
+            
+            // Limpa a query string da URL sem recarregar
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
 
         function renderClientOrders() {
