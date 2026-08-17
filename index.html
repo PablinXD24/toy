@@ -386,22 +386,54 @@
             letter-spacing: -0.02em;
         }
 
-        /* Product Detail View */
+        /* Product Detail View (Agora transformado em Grande Pop-up Modal) */
+        .catalog-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
+            padding: 20px;
+        }
+
+        .catalog-modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .catalog-modal-card {
+            background: var(--bg-surface);
+            width: 100%;
+            max-width: 900px;
+            border-radius: 24px;
+            padding: 48px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+
         .product-detail-container {
             display: grid;
             grid-template-columns: 1.1fr 0.9fr;
             gap: 48px;
-            background: var(--bg-surface);
-            padding: 48px;
-            border-radius: 24px;
-            border: 1px solid var(--border-color);
         }
 
         .detail-img-box {
             border-radius: 16px;
             overflow: hidden;
             background: var(--light-gray);
-            height: 480px;
+            height: 400px;
         }
 
         .detail-img-box img {
@@ -766,6 +798,9 @@
         @media (max-width: 768px) {
             .product-detail-container {
                 grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            .catalog-modal-card {
                 padding: 24px;
             }
             .dashboard-container {
@@ -853,16 +888,6 @@
 
             <!-- Grade de Produtos -->
             <div class="products-grid" id="products-grid-container">
-                <!-- JS injetado -->
-            </div>
-        </section>
-
-        <!-- VIEW: DETALHES DO PRODUTO -->
-        <section id="view-product-detail" class="view-section">
-            <button class="btn btn-outline" style="margin-bottom: 24px;" onclick="switchView('store')">
-                <i class="fa-solid fa-arrow-left"></i> Voltar
-            </button>
-            <div class="product-detail-container" id="product-detail-content">
                 <!-- JS injetado -->
             </div>
         </section>
@@ -984,6 +1009,16 @@
 
     </main>
 
+    <!-- MODAL: DETALHES DO PRODUTO (POP-UP) -->
+    <div class="catalog-modal-overlay" id="product-detail-modal" onclick="closeProductDetailModal(event)">
+        <div class="catalog-modal-card" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeProductDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+            <div class="product-detail-container" id="product-detail-content">
+                <!-- JS injetado -->
+            </div>
+        </div>
+    </div>
+
     <!-- DRAWER: CARRINHO -->
     <div class="modal-overlay" id="cart-drawer-overlay" onclick="closeCartDrawer(event)">
         <div class="cart-drawer" onclick="event.stopPropagation()">
@@ -997,7 +1032,7 @@
                     <span>Total</span>
                     <span id="cart-total-price">R$ 0,00</span>
                 </div>
-                <button class="btn btn-primary" style="width: 100%;" onclick="redirectToMercadoPago()">Finalizar Compra (Mercado Pago)</button>
+                <button class="btn btn-primary" style="width: 100%;" onclick="proceedToCheckout()">Finalizar Pedido</button>
             </div>
         </div>
     </div>
@@ -1027,6 +1062,29 @@
                 <p style="text-align: center; margin-top: 20px; font-size: 0.85rem;">
                     <a href="#" id="auth-toggle-mode" onclick="toggleAuthMode(event)" style="color: var(--text-primary); font-weight: 600; text-decoration: underline;">Criar nova conta</a>
                 </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CHECKOUT -->
+    <div class="centered-modal-overlay" id="checkout-modal">
+        <div class="modal-card">
+            <button class="modal-close" onclick="closeCheckoutModal()"><i class="fa-solid fa-xmark"></i></button>
+            <h2 style="margin-bottom: 24px; font-size: 1.35rem;">Checkout</h2>
+            <form id="checkout-form" onsubmit="handleCheckoutSubmit(event)">
+                <div class="form-group">
+                    <label>Endereço de Entrega</label>
+                    <input type="text" id="checkout-address" required placeholder="Rua, Número, Bairro, Cidade">
+                </div>
+                <div class="form-group">
+                    <label>Método de Pagamento</label>
+                    <select id="checkout-payment" required>
+                        <option value="Pix">Pix</option>
+                        <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        <option value="WhatsApp">Fechamento via WhatsApp</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Confirmar Pagamento</button>
             </form>
         </div>
     </div>
@@ -1131,7 +1189,7 @@
                 id: 'ORD-1049',
                 userId: 'pablo11ssousa2@gmail.com',
                 userName: 'Pablo Sousa',
-                address: 'Endereço via Mercado Pago',
+                address: 'Rua Augusta, 500 - São Paulo',
                 items: [{name: 'Blocos Geométricos em Madeira', qty: 1, price: 129.90}],
                 total: 129.90,
                 status: 'Em separação',
@@ -1149,12 +1207,6 @@
             renderAdminProducts();
             renderAdminOrders();
             calculateMetrics();
-
-            // Verificar retorno do Mercado Pago simulado na URL
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('status') === 'success' || window.location.hash === '#success') {
-                finalizePendingOrderAfterPayment();
-            }
         });
 
         function switchView(viewId) {
@@ -1254,12 +1306,16 @@
                     <div class="detail-price">R$ ${p.price.toFixed(2)}</div>
                     <p class="detail-desc">${p.description}</p>
                     <p style="margin-bottom: 24px; font-size: 0.85rem; color: var(--text-secondary);">Estoque disponível: <strong>${p.stock} unidades</strong></p>
-                    <button class="btn btn-primary" onclick="addToCart('${p.id}')">Adicionar ao Carrinho</button>
+                    <button class="btn btn-primary" onclick="addToCart('${p.id}'); closeProductDetailModal();">Adicionar ao Carrinho</button>
                 </div>
             `;
-            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
-            document.getElementById('view-product-detail').classList.add('active');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('product-detail-modal').classList.add('open');
+        }
+
+        function closeProductDetailModal(e) {
+            if (!e || e.target.id === 'product-detail-modal') {
+                document.getElementById('product-detail-modal').classList.remove('open');
+            }
         }
 
         function addToCart(id) {
@@ -1405,50 +1461,37 @@
             }
         }
 
-        function redirectToMercadoPago() {
+        function proceedToCheckout() {
             if (!currentUser) { closeCartDrawer(); openAuthModal(); return; }
             if (cart.length === 0) { alert('Carrinho vazio.'); return; }
+            closeCartDrawer();
+            document.getElementById('checkout-modal').classList.add('open');
+        }
 
+        function closeCheckoutModal() { document.getElementById('checkout-modal').classList.remove('open'); }
+
+        function handleCheckoutSubmit(e) {
+            e.preventDefault();
+            const address = document.getElementById('checkout-address').value;
+            const payment = document.getElementById('checkout-payment').value;
             const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
-            const pendingOrder = {
+            const newOrder = {
                 id: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
                 userId: currentUser.email,
                 userName: currentUser.name,
-                address: 'Endereço via Mercado Pago',
-                payment: 'Mercado Pago',
+                address,
+                payment,
                 items: [...cart],
                 total,
                 status: 'Em separação',
                 createdAt: new Date().toISOString().split('T')[0]
             };
 
-            // Salva temporariamente para processar o pedido após o retorno do pagamento
-            localStorage.setItem('toyminimal_pending_order', JSON.stringify(pendingOrder));
-
-            closeCartDrawer();
-
-            // Simula o redirecionamento para o Mercado Pago e retorno automático com parâmetro de sucesso
-            const currentUrl = window.location.href.split('?')[0];
-            const redirectUrl = `${currentUrl}?status=success`;
-            
-            alert('Redirecionando para o ambiente seguro do Mercado Pago...');
-            window.location.href = redirectUrl;
-        }
-
-        function finalizePendingOrderAfterPayment() {
-            const pendingOrderStr = localStorage.getItem('toyminimal_pending_order');
-            if (!pendingOrderStr) return;
-
-            const newOrder = JSON.parse(pendingOrderStr);
-            
-            // Evita duplicidade se a página recarregar
-            localStorage.removeItem('toyminimal_pending_order');
-
             orders.unshift(newOrder);
             localStorage.setItem('toyminimal_orders', JSON.stringify(orders));
 
-            newOrder.items.forEach(cartItem => {
+            cart.forEach(cartItem => {
                 const prod = products.find(p => p.id === cartItem.id);
                 if (prod) prod.stock -= cartItem.qty;
             });
@@ -1457,13 +1500,8 @@
             cart = [];
             saveCart();
             updateCartBadge();
-
-            // Mensagem de agradecimento solicitada e redirecionamento para pedidos
-            alert('Obrigado pela sua compra! O pagamento foi processado com sucesso pelo Mercado Pago.');
+            closeCheckoutModal();
             switchView('orders');
-            
-            // Limpa a query string da URL sem recarregar
-            window.history.replaceState({}, document.title, window.location.pathname);
         }
 
         function renderClientOrders() {
