@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToyLand - Loja de Brinquedos</title>
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            min-height: 100vh;
+            background-size: cover;
+            background-position: center;
+            transition: background-image 0.5s ease-in-out;
+            background-color: #f0f2f5;
+            background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=1920&q=80');
+        }
+
+        /* Classes de Background Dinâmico */
+        body.dolls-bg { background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&w=1920&q=80'); }
+        body.cars-bg { background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1594787318286-3d835c1d207f?auto=format&fit=crop&w=1920&q=80'); }
+        body.games-bg { background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=1920&q=80'); }
+
+        .top-header { position: absolute; top: 20px; right: 30px; display: flex; z-index: 10; }
+        .user-actions { display: flex; gap: 15px; flex-direction: row-reverse; }
+
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none; width: 45px; height: 45px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; color: #333; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+
+        .icon-btn:hover { transform: scale(1.1); }
+
+        .main-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(15px);
+            padding: 30px; border-radius: 24px;
+            width: 100%; max-width: 800px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .store-title { text-align: center; margin-bottom: 20px; color: #2f3542; }
+
+        .categories-grid { display: flex; justify-content: center; gap: 10px; margin-bottom: 25px; }
+
+        .cat-btn {
+            background: #f1f2f6; border: none; padding: 10px 20px; border-radius: 20px;
+            cursor: pointer; font-weight: 600; color: #57606f; transition: all 0.3s;
+        }
+
+        .cat-btn.active { background: #ff4757; color: white; }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2x2 para totalizar 4 */
+            gap: 20px;
+        }
+
+        .product-box {
+            background: white; padding: 15px; border-radius: 16px; text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .buy-btn {
+            background: #2ed573; color: white; border: none; padding: 10px;
+            border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px;
+        }
+    </style>
+</head>
+<body id="body-bg">
+
+    <header class="top-header">
+        <div class="user-actions">
+            <button class="icon-btn"><i class="fa-solid fa-cart-shopping"></i></button>
+            <button class="icon-btn"><i class="fa-solid fa-user"></i></button>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="glass-card">
+            <h1 class="store-title">ToyLand 🧸</h1>
+            
+            <section class="categories-grid" id="categories-container">
+                <button class="cat-btn active" data-bg="default-bg">Todos</button>
+                <button class="cat-btn" data-bg="dolls-bg">Bonecas</button>
+                <button class="cat-btn" data-bg="cars-bg">Carrinhos</button>
+                <button class="cat-btn" data-bg="games-bg">Jogos</button>
+            </section>
+
+            <section class="products-grid">
+                <div class="product-box"><h3>Brinquedo 1</h3><button class="buy-btn">Comprar</button></div>
+                <div class="product-box"><h3>Brinquedo 2</h3><button class="buy-btn">Comprar</button></div>
+                <div class="product-box"><h3>Brinquedo 3</h3><button class="buy-btn">Comprar</button></div>
+                <div class="product-box"><h3>Brinquedo 4</h3><button class="buy-btn">Comprar</button></div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // Lógica de troca de background
+        const body = document.getElementById('body-bg');
+        const buttons = document.querySelectorAll('.cat-btn');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                body.className = ''; // Limpa classes
+                const newBg = btn.getAttribute('data-bg');
+                if (newBg !== 'default-bg') body.classList.add(newBg);
+            });
+        });
+    </script>
+</body>
+</html>
