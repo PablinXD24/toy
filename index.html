@@ -1044,13 +1044,10 @@
                 <div class="form-group">
                     <label>Método de Pagamento</label>
                     <select id="checkout-payment" required>
-                        <option value="Mercado Pago">Mercado Pago (Redirecionamento API)</option>
-                        <option value="Pix">Pix</option>
-                        <option value="Cartão de Crédito">Cartão de Crédito</option>
-                        <option value="WhatsApp">Fechamento via WhatsApp</option>
+                        <option value="Mercado Pago">Mercado Pago (Pix, Cartão, Boleto, etc.)</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Confirmar e Ir para Pagamento</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Ir para o Mercado Pago</button>
             </form>
         </div>
     </div>
@@ -1464,14 +1461,9 @@
             updateCartBadge();
             closeCheckoutModal();
 
-            if (payment === 'Mercado Pago') {
-                // Redirecionamento para a API de pagamentos do Mercado Pago (simulação de URL externa/checkout transparente)
-                alert('Redirecionando para o ambiente seguro do Mercado Pago...');
-                window.location.href = `https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=${newOrder.id}`;
-                return;
-            }
-
-            switchView('orders');
+            // Redirecionamento unificado para a API de pagamentos do Mercado Pago
+            alert('Redirecionando para o ambiente seguro do Mercado Pago...');
+            window.location.href = `https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=${newOrder.id}`;
         }
 
         function renderClientOrders() {
